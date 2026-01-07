@@ -1,42 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
+import '../../core/workout_provider.dart';
+import '../auth/auth_provider.dart';
 
 class ProgressionTrackerScreen extends StatelessWidget {
   const ProgressionTrackerScreen({super.key});
 
-  final List<ProgressionStep> steps = const [
-    ProgressionStep(
-      title: "Pike Push Up",
-      description: "Building shoulder overhead pushing strength.",
-      level: 1,
-      isCompleted: true,
-    ),
-    ProgressionStep(
-      title: "Elevated Pike",
-      description: "Adding more weight by elevating feet.",
-      level: 2,
-      isCompleted: true,
-    ),
-    ProgressionStep(
-      title: "Wall Hold",
-      description: "Getting comfortable being upside down.",
-      level: 3,
-      isCurrent: true,
-    ),
-    ProgressionStep(
-      title: "Wall HSPU",
-      description: "The primary strength builder for freestanding.",
-      level: 4,
-    ),
-    ProgressionStep(
-      title: "Freestanding",
-      description: "The ultimate goal. 180 degrees of power.",
-      level: 5,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final workoutProvider = context.watch<WorkoutProvider>();
+    final user = context.watch<AuthProvider>().user;
+    final myLogs = workoutProvider.logs.where((log) => log.userId == user?.uid).toList();
+
+    bool hasLogged(String exercise) => myLogs.any((l) => l.exercise.toLowerCase() == exercise.toLowerCase());
+
+    bool isStepCompleted(int level) {
+      switch (level) {
+        case 1: return hasLogged("Pike Push Up") || hasLogged("Elevated Pike") || hasLogged("Wall Hold") || hasLogged("Wall HSPU");
+        case 2: return hasLogged("Elevated Pike") || hasLogged("Wall Hold") || hasLogged("Wall HSPU");
+        case 3: return hasLogged("Wall Hold") || hasLogged("Wall HSPU");
+        case 4: return hasLogged("Wall HSPU") && myLogs.any((l) => l.reps >= 10);
+        case 5: return hasLogged("Freestanding");
+        default: return false;
+      }
+    }
+
+    int currentLevel = 1;
+    for (int i = 1; i <= 5; i++) {
+      if (!isStepCompleted(i)) {
+        currentLevel = i;
+        break;
+      }
+    }
+
+    final List<ProgressionStep> steps = [
+      ProgressionStep(
+        title: "Pike Push Up",
+        description: "Building shoulder overhead pushing strength.",
+        level: 1,
+        isCompleted: isStepCompleted(1),
+        isCurrent: currentLevel == 1,
+      ),
+      ProgressionStep(
+        title: "Elevated Pike",
+        description: "Adding more weight by elevating feet.",
+        level: 2,
+        isCompleted: isStepCompleted(2),
+        isCurrent: currentLevel == 2,
+      ),
+      ProgressionStep(
+        title: "Wall Hold",
+        description: "Getting comfortable being upside down.",
+        level: 3,
+        isCompleted: isStepCompleted(3),
+        isCurrent: currentLevel == 3,
+      ),
+      ProgressionStep(
+        title: "Wall HSPU",
+        description: "The primary strength builder for freestanding.",
+        level: 4,
+        isCompleted: isStepCompleted(4),
+        isCurrent: currentLevel == 4,
+      ),
+      ProgressionStep(
+        title: "Freestanding",
+        description: "The ultimate goal. 180 degrees of power.",
+        level: 5,
+        isCompleted: isStepCompleted(5),
+        isCurrent: currentLevel == 5,
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('ROAD TO 180'),

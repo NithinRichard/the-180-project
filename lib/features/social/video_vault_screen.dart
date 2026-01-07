@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../core/app_theme.dart';
+import '../../core/workout_provider.dart';
+import '../../shared/widgets/video_player_widget.dart';
 
 class VideoVaultScreen extends StatelessWidget {
   const VideoVaultScreen({super.key});
@@ -21,14 +25,32 @@ class VideoVaultScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: 10,
-        itemBuilder: (context, index) {
-          return _VideoFeedTile(
-            userName: index % 2 == 0 ? "ME" : "PARTNER",
-            exercise: "Wall HSPU",
-            date: "Jan ${10 - index}, 2026",
-            reps: "${6 + index % 3}",
+      body: Consumer<WorkoutProvider>(
+        builder: (context, provider, child) {
+          final videoLogs = provider.logs.where((log) => log.videoUrl != null).toList();
+
+          if (videoLogs.isEmpty) {
+            return const Center(
+              child: Text(
+                "NO VIDEO EVIDENCE FOUND.\nRECORD A SET TO START YOUR VAULT.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white24, letterSpacing: 2),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: videoLogs.length,
+            itemBuilder: (context, index) {
+              final log = videoLogs[index];
+              return _VideoFeedTile(
+                userName: log.userName,
+                exercise: log.exercise,
+                date: DateFormat('MMM dd, yyyy').format(log.timestamp),
+                reps: log.reps.toString(),
+                videoUrl: log.videoUrl!,
+              );
+            },
           );
         },
       ),
@@ -41,12 +63,14 @@ class _VideoFeedTile extends StatelessWidget {
   final String exercise;
   final String date;
   final String reps;
+  final String videoUrl;
 
   const _VideoFeedTile({
     required this.userName,
     required this.exercise,
     required this.date,
     required this.reps,
+    required this.videoUrl,
   });
 
   @override
@@ -61,10 +85,9 @@ class _VideoFeedTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Placeholder for Video/Thumbnail
-          const Center(
-            child: Icon(Icons.play_circle_outline, color: AppTheme.voltGreen, size: 80),
-          ),
+          // Real Video Playback
+          VideoPlayerWidget(videoUrl: videoUrl),
+          
           // Info Overlay
           Positioned(
             bottom: 0,

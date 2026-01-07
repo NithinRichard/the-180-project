@@ -9,6 +9,7 @@ class WorkoutLog {
   final int formFeel;
   final DateTime timestamp;
   final String? videoUrl;
+  final String teamId;
 
   WorkoutLog({
     required this.id,
@@ -18,6 +19,7 @@ class WorkoutLog {
     required this.exercise,
     required this.formFeel,
     required this.timestamp,
+    required this.teamId,
     this.videoUrl,
   });
 
@@ -31,6 +33,7 @@ class WorkoutLog {
       formFeel: data['formFeel'] ?? 0,
       timestamp: (data['timestamp'] as Timestamp).toDate(),
       videoUrl: data['videoUrl'],
+      teamId: data['teamId'] ?? 'global',
     );
   }
 
@@ -43,6 +46,7 @@ class WorkoutLog {
       'formFeel': formFeel,
       'timestamp': Timestamp.fromDate(timestamp),
       'videoUrl': videoUrl,
+      'teamId': teamId,
     };
   }
 }

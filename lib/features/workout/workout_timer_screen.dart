@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:camera/camera.dart';
 import '../../core/app_theme.dart';
 import '../../core/workout_provider.dart';
+import '../../shared/widgets/video_recorder.dart';
 import 'hspu_timer_widget.dart';
 
 class WorkoutTimerScreen extends StatefulWidget {
@@ -13,6 +15,8 @@ class WorkoutTimerScreen extends StatefulWidget {
 
 class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
   bool _isTraining = false;
+  XFile? _recordedVideo;
+  final GlobalKey<VideoRecorderWidgetState> _recorderKey = GlobalKey();
 
   final TextEditingController _repsController = TextEditingController(text: "0");
 
@@ -76,6 +80,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
       reps: _repsController.text,
       exercise: "Wall HSPU", // Mocking current exercise
       formFeel: formFeel,
+      videoPath: _recordedVideo?.path,
     );
     Navigator.pop(context); // Close dialog
     Navigator.pop(context); // Exit timer screen
@@ -110,9 +115,23 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                 ],
               ),
             ),
-            const Expanded(
-              child: Center(
-                child: HSPUTimerWidget(),
+            Expanded(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                   VideoRecorderWidget(
+                    key: _recorderKey,
+                    onRecordingComplete: (file) {
+                      _recordedVideo = file;
+                    },
+                  ),
+                  Container(
+                    color: Colors.black.withOpacity(0.4),
+                    child: Center(
+                      child: HSPUTimerWidget(isRunning: _isTraining),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -123,6 +142,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                     ElevatedButton(
                       onPressed: () {
                         setState(() => _isTraining = true);
+                        _recorderKey.currentState?.toggleRecording();
                       },
                       child: const Text("START SET"),
                     )
@@ -131,6 +151,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                       onPressed: () {
                         setState(() => _isTraining = false);
+                        _recorderKey.currentState?.toggleRecording();
                         _showNotePopup();
                       },
                       child: const Text("STOP / LOG SET"),

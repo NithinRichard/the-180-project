@@ -7,6 +7,7 @@ import '../workout/progression_tracker_screen.dart';
 import '../auth/auth_provider.dart';
 import 'video_vault_screen.dart';
 import 'profile_screen.dart';
+import '../../shared/widgets/video_player_widget.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -48,30 +49,95 @@ class DashboardScreen extends StatelessWidget {
       ),
       body: Consumer<WorkoutProvider>(
         builder: (context, provider, child) {
+          if (!provider.isInitialized) {
+            return const Center(child: CircularProgressIndicator(color: AppTheme.voltGreen));
+          }
           final myLastSet = provider.lastMySet;
-          final partnerLastSet = provider.lastPartnerSet;
+          final squadSets = provider.squadLogs;
+          final currentUser = context.read<AuthProvider>().user; 
+          final myName = currentUser?.email?.split('@').first.toUpperCase() ?? "ME";
 
-          return Column(
-            children: [
-              Expanded(
-                child: _UserSetCard(
-                  title: "MY LAST SET",
-                  reps: myLastSet?.reps.toString() ?? "0",
-                  exercise: myLastSet?.exercise ?? "N/A",
-                  timeAgo: _formatTimestamp(myLastSet?.timestamp),
-                  isMe: true,
+          return CustomScrollView(
+            slivers: [
+              // My Last Set
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 350,
+                  child: _UserSetCard(
+                    title: "$myName'S LAST SET",
+                    reps: myLastSet?.reps.toString() ?? "0",
+                    exercise: myLastSet?.exercise ?? "NONE YET",
+                    timeAgo: _formatTimestamp(myLastSet?.timestamp),
+                    videoUrl: myLastSet?.videoUrl,
+                    isMe: true,
+                  ),
                 ),
               ),
-              const Divider(color: AppTheme.voltGreen, thickness: 2, height: 2),
-              Expanded(
-                child: _UserSetCard(
-                  title: "PARTNER'S LAST SET",
-                  reps: partnerLastSet?.reps.toString() ?? "0",
-                  exercise: partnerLastSet?.exercise ?? "N/A",
-                  timeAgo: _formatTimestamp(partnerLastSet?.timestamp),
-                  isMe: false,
+              
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(24, 40, 24, 16),
+                  child: Text(
+                    "SQUAD FEED",
+                    style: TextStyle(
+                      color: AppTheme.voltGreen,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
+
+              // Squad Members
+              if (squadSets.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.group_off_outlined, size: 48, color: Colors.white10),
+                          const SizedBox(height: 16),
+                          Text(
+                            "NO RECENT ACTIVITY IN\n${provider.currentTeamId.toUpperCase()}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white24, letterSpacing: 2, fontSize: 12),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Teams only show work logged AFTER joining.\nTry logging a set together! 🦍",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppTheme.voltGreen, fontSize: 10, fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final log = squadSets[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 2),
+                        height: 300,
+                        child: _UserSetCard(
+                          title: "${log.userName.toUpperCase()}'S LAST SET",
+                          reps: log.reps.toString(),
+                          exercise: log.exercise,
+                          timeAgo: _formatTimestamp(log.timestamp),
+                          videoUrl: log.videoUrl,
+                          isMe: false,
+                        ),
+                      );
+                    },
+                    childCount: squadSets.length,
+                  ),
+                ),
             ],
           );
         },
@@ -108,6 +174,7 @@ class _UserSetCard extends StatelessWidget {
   final String reps;
   final String exercise;
   final String timeAgo;
+  final String? videoUrl;
   final bool isMe;
 
   const _UserSetCard({
@@ -115,6 +182,7 @@ class _UserSetCard extends StatelessWidget {
     required this.reps,
     required this.exercise,
     required this.timeAgo,
+    this.videoUrl,
     required this.isMe,
   });
 
@@ -149,26 +217,31 @@ class _UserSetCard extends StatelessWidget {
           ),
           const Spacer(),
           Center(
-            child: Column(
-              children: [
-                Text(
-                  reps,
-                  style: const TextStyle(
-                    fontSize: 80,
-                    fontWeight: FontWeight.bold,
-                    height: 1,
+            child: videoUrl != null
+                ? SizedBox(
+                    height: 200,
+                    child: VideoPlayerWidget(videoUrl: videoUrl!),
+                  )
+                : Column(
+                    children: [
+                      Text(
+                        reps,
+                        style: const TextStyle(
+                          fontSize: 80,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                      ),
+                      Text(
+                        "REPS",
+                        style: TextStyle(
+                          color: AppTheme.voltGreen.withOpacity(0.7),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Text(
-                  "REPS",
-                  style: TextStyle(
-                    color: AppTheme.voltGreen.withOpacity(0.7),
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
           ),
           const Spacer(),
           Row(

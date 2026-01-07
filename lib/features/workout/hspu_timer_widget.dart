@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import '../../core/app_theme.dart';
 
 class HSPUTimerWidget extends StatefulWidget {
-  const HSPUTimerWidget({super.key});
+  final bool isRunning;
+  const HSPUTimerWidget({super.key, required this.isRunning});
 
   @override
   State<HSPUTimerWidget> createState() => _HSPUTimerWidgetState();
@@ -13,11 +14,22 @@ class HSPUTimerWidget extends StatefulWidget {
 class _HSPUTimerWidgetState extends State<HSPUTimerWidget> {
   int _seconds = 0;
   Timer? _timer;
-  bool _running = false;
   
   // Metronome logic (3s total cycle)
   Timer? _metronomeTimer;
   bool _isDownPhase = true;
+
+  @override
+  void didUpdateWidget(HSPUTimerWidget oldWidget) {
+    if (widget.isRunning != oldWidget.isRunning) {
+      if (widget.isRunning) {
+        _startTimer();
+      } else {
+        _stopTimer();
+      }
+    }
+    super.didUpdateWidget(oldWidget);
+  }
 
   @override
   void dispose() {
@@ -26,25 +38,24 @@ class _HSPUTimerWidgetState extends State<HSPUTimerWidget> {
     super.dispose();
   }
 
-  void _toggleTimer() {
-    if (_running) {
-      _timer?.cancel();
-      _metronomeTimer?.cancel();
-    } else {
-      _seconds = 0;
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        setState(() => _seconds++);
-      });
-      
-      // Start metronome every 1.5s
-      _isDownPhase = true;
+  void _startTimer() {
+    _seconds = 0;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() => _seconds++);
+    });
+    
+    // Start metronome every 1.5s
+    _isDownPhase = true;
+    _playMetronomeSound();
+    _metronomeTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
+      _isDownPhase = !_isDownPhase;
       _playMetronomeSound();
-      _metronomeTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
-        _isDownPhase = !_isDownPhase;
-        _playMetronomeSound();
-      });
-    }
-    setState(() => _running = !_running);
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _metronomeTimer?.cancel();
   }
 
   void _playMetronomeSound() {
@@ -55,54 +66,51 @@ class _HSPUTimerWidgetState extends State<HSPUTimerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggleTimer,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 280,
-            height: 280,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _running ? AppTheme.voltGreen : Colors.white24,
-                width: 8,
-              ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 280,
+          height: 280,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: widget.isRunning ? AppTheme.voltGreen : Colors.white24,
+              width: 8,
             ),
-            child: Center(
-              child: Text(
-                _formatTime(_seconds),
-                style: TextStyle(
-                  fontSize: 80,
-                  fontWeight: FontWeight.bold,
-                  color: _running ? AppTheme.voltGreen : Colors.white,
-                ),
+          ),
+          child: Center(
+            child: Text(
+              _formatTime(_seconds),
+              style: TextStyle(
+                fontSize: 80,
+                fontWeight: FontWeight.bold,
+                color: widget.isRunning ? AppTheme.voltGreen : Colors.white,
               ),
             ),
           ),
-          const SizedBox(height: 40),
-          if (_running)
-            Text(
-              _isDownPhase ? "PHASE: DOWN ↓" : "PHASE: UP ↑",
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.voltGreen,
-                letterSpacing: 2,
-              ),
-            )
-          else
-            const Text(
-              "TAP TO READY",
-              style: TextStyle(
-                fontSize: 24,
-                color: Colors.white54,
-                letterSpacing: 4,
-              ),
+        ),
+        const SizedBox(height: 40),
+        if (widget.isRunning)
+          Text(
+            _isDownPhase ? "PHASE: DOWN ↓" : "PHASE: UP ↑",
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.voltGreen,
+              letterSpacing: 2,
             ),
-        ],
-      ),
+          )
+        else
+          const Text(
+            "TAP TO READY",
+            style: TextStyle(
+              fontSize: 24,
+              color: Colors.white54,
+              letterSpacing: 4,
+            ),
+          ),
+      ],
     );
   }
 

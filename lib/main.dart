@@ -5,6 +5,7 @@ import 'core/app_theme.dart';
 import 'core/workout_provider.dart';
 import 'features/social/dashboard_screen.dart';
 
+import 'core/firebase_service.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/login_screen.dart';
 import 'firebase_options.dart';
@@ -19,7 +20,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProxyProvider<AuthProvider, WorkoutProvider>(
-          create: (_) => WorkoutProvider(),
+          create: (_) => WorkoutProvider(FirebaseService()),
           update: (_, auth, workout) =>
               workout!..update(auth.user?.uid, auth.user?.email),
         ),
