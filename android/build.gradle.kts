@@ -22,7 +22,16 @@ subprojects {
 }
 
 subprojects {
-    project.evaluationDependsOn(":app")
+    val subproject = this
+    subproject.plugins.configureEach {
+        if (this is com.android.build.gradle.BasePlugin) {
+            val android = subproject.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
+            android.compileSdkVersion(35)
+            android.defaultConfig {
+                targetSdkVersion(35)
+            }
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {
