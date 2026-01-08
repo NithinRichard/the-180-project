@@ -46,5 +46,5 @@ flutter {
 }
 
 dependencies {
-    implementation("com.android.support:multidex:1.0.3")
+    implementation("androidx.multidex:multidex:2.0.1")
 }
