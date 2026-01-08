@@ -12,6 +12,19 @@ val newBuildDir: Directory =
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
+    project.configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "androidx.core" && requested.name == "core") {
+                useVersion("1.13.1")
+            }
+            if (requested.group == "androidx.core" && requested.name == "core-ktx") {
+                useVersion("1.13.1")
+            }
+        }
+    }
+}
+
+subprojects {
     project.evaluationDependsOn(":app")
 }
 
