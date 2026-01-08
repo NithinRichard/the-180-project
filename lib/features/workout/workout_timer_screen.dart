@@ -16,6 +16,9 @@ class WorkoutTimerScreen extends StatefulWidget {
 class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
   bool _isTraining = false;
   XFile? _recordedVideo;
+  String _selectedExercise = "SQUAT";
+  final List<String> _exercises = ["SQUAT", "PUSHUP", "HSPU"];
+  
   final GlobalKey<VideoRecorderWidgetState> _recorderKey = GlobalKey();
 
   final TextEditingController _repsController = TextEditingController(text: "0");
@@ -78,7 +81,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
     final provider = Provider.of<WorkoutProvider>(context, listen: false);
     provider.addLog(
       reps: _repsController.text,
-      exercise: "Wall HSPU", // Mocking current exercise
+      exercise: _selectedExercise,
       formFeel: formFeel,
       videoPath: _recordedVideo?.path,
     );
@@ -102,16 +105,34 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                     icon: const Icon(Icons.close, color: Colors.white, size: 32),
                     onPressed: () => Navigator.pop(context),
                   ),
+                  
+                  // Exercise Dropdown
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.voltGreen.withOpacity(0.3)),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedExercise,
+                      dropdownColor: Colors.black,
+                      underline: const SizedBox(),
+                      style: const TextStyle(color: AppTheme.voltGreen, fontWeight: FontWeight.bold),
+                      onChanged: _isTraining ? null : (val) {
+                        setState(() => _selectedExercise = val!);
+                      },
+                      items: _exercises.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    ),
+                  ),
+
                   const Text(
-                    "LIVE TRAINING",
+                    "AI LIVE",
                     style: TextStyle(
                       color: AppTheme.voltGreen,
-                      fontSize: 20,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2,
                     ),
                   ),
-                  const SizedBox(width: 48), // Spacer for balance
                 ],
               ),
             ),
@@ -121,6 +142,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                 children: [
                    VideoRecorderWidget(
                     key: _recorderKey,
+                    exerciseType: _selectedExercise,
                     onRecordingComplete: (file) {
                       _recordedVideo = file;
                     },
