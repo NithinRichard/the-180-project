@@ -7,13 +7,14 @@ allprojects {
         mavenCentral()
     }
     
-    // Set global SDK versions that many plugins pick up
+    // Inject SDK versions into all plugins using standard Flutter patterns
+    // This is the safest way to override SDKs without causing lifecycle or syntax errors
     project.ext.set("compileSdkVersion", 36)
     project.ext.set("targetSdkVersion", 36)
     project.ext.set("minSdkVersion", 21)
 }
 
-// Put this OUTSIDE allprojects { } block
+// Global build directory redirection - Put this OUTSIDE allprojects block
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../build")
@@ -22,35 +23,21 @@ val newBuildDir: Directory =
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    val subproject = this
+    subproject.layout.buildDirectory.value(newBuildDir.dir(subproject.name))
 }
 
 subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Force specific versions to resolve lStar resource error
+// Force specific versions project-wide to resolve lStar resource error
 subprojects {
     project.configurations.all {
         resolutionStrategy {
             force("androidx.core:core:1.12.0")
             force("androidx.core:core-ktx:1.12.0")
             force("androidx.annotation:annotation:1.8.0")
-        }
-    }
-}
-
-// Force SDK 36 for all subprojects to satisfy plugin requirements
-subprojects {
-    afterEvaluate {
-        val subproject = this
-        if (subproject.extensions.findByType(com.android.build.gradle.BaseExtension::class.java) != null) {
-            val android = subproject.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
-            android.compileSdkVersion(36)
-            android.defaultConfig {
-                targetSdkVersion(36)
-            }
         }
     }
 }

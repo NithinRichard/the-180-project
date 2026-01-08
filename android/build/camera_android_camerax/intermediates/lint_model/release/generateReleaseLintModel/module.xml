@@ -1,0 +1,38 @@
+<lint-module
+    format="1"
+    dir="C:\Users\Nithin\AppData\Local\Pub\Cache\hosted\pub.dev\camera_android_camerax-0.6.26+2\android"
+    name=":camera_android_camerax"
+    type="LIBRARY"
+    maven="io.flutter.plugins.camerax:camera_android_camerax:1.0"
+    agpVersion="8.6.0"
+    buildFolder="C:\Users\Nithin\Desktop\THE 180 PROJECT\android\build\camera_android_camerax"
+    bootClassPath="C:\Users\Nithin\AppData\Local\Android\sdk\platforms\android-36\android.jar;C:\Users\Nithin\AppData\Local\Android\sdk\build-tools\34.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-36"
+    neverShrinking="true">
+  <lintOptions
+      baselineFile="lint-baseline.xml"
+      disable="AndroidGradlePluginVersion,GradleDependency,InvalidPackage,NewerVersionAvailable"
+      abortOnError="true"
+      absolutePaths="true"
+      checkAllWarnings="true"
+      warningsAsErrors="true"
+      checkReleaseBuilds="true"
+      explainIssues="true">
+    <severities>
+      <severity
+        id="AndroidGradlePluginVersion"
+        severity="IGNORE" />
+      <severity
+        id="GradleDependency"
+        severity="IGNORE" />
+      <severity
+        id="InvalidPackage"
+        severity="IGNORE" />
+      <severity
+        id="NewerVersionAvailable"
+        severity="IGNORE" />
+    </severities>
+  </lintOptions>
+  <variant name="release"/>
+</lint-module>
