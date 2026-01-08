@@ -9,13 +9,11 @@ allprojects {
     
     // Inject SDK versions into all plugins using standard Flutter patterns
     // This is the safest way to override SDKs without causing lifecycle or syntax errors
-    project.ext.set("compileSdkVersion", 35)
-    project.ext.set("targetSdkVersion", 35)
-
-    project.ext.set("minSdkVersion", 21)
+    // Using extra properties for Kotlin DSL compatibility
+    extra["compileSdkVersion"] = 36
+    extra["targetSdkVersion"] = 36
+    extra["minSdkVersion"] = 21
 }
-
-
 
 subprojects {
     project.evaluationDependsOn(":app")
