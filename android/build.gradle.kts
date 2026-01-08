@@ -20,9 +20,9 @@ subprojects {
     subproject.plugins.whenPluginAdded {
         if (this is com.android.build.gradle.AppPlugin || this is com.android.build.gradle.LibraryPlugin) {
             val android = subproject.extensions.getByType<com.android.build.gradle.BaseExtension>()
-            android.compileSdkVersion(35)
+            android.compileSdkVersion(36)
             android.defaultConfig {
-                targetSdkVersion(35)
+                targetSdkVersion(36)
             }
         }
     }
