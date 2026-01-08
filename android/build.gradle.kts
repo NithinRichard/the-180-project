@@ -21,22 +21,14 @@ subprojects {
     }
 }
 
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
 // Safely override SDK versions for all Android plugins
 subprojects {
-    project.plugins.configureEach {
-        val plugin = this
-        if (plugin::class.java.name.contains("AndroidBasePlugin")) {
-            val android = project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)
-            android?.apply {
-                compileSdkVersion(36)
-                defaultConfig {
-                    targetSdkVersion(36)
-                }
-            }
+    afterEvaluate {
+        val project = this
+        if (project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java) != null) {
+            val android = project.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
+            android.compileSdkVersion(36)
+            android.defaultConfig.targetSdkVersion(36)
         }
     }
 }
