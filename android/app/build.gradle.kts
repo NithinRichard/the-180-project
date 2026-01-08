@@ -8,7 +8,8 @@ plugins {
 
 android {
     namespace = "com.example.the_180_project"
-    compileSdk = 36
+    compileSdk = 35
+
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -26,7 +27,8 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion // Required for ML Kit and Firebase
-        targetSdk = 36
+        targetSdk = 35
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true

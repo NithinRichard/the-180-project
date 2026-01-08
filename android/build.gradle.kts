@@ -9,23 +9,13 @@ allprojects {
     
     // Inject SDK versions into all plugins using standard Flutter patterns
     // This is the safest way to override SDKs without causing lifecycle or syntax errors
-    project.ext.set("compileSdkVersion", 36)
-    project.ext.set("targetSdkVersion", 36)
+    project.ext.set("compileSdkVersion", 35)
+    project.ext.set("targetSdkVersion", 35)
+
     project.ext.set("minSdkVersion", 21)
 }
 
-// Global build directory redirection - Put this OUTSIDE allprojects block
-val newBuildDir: Directory =
-    rootProject.layout.buildDirectory
-        .dir("../build")
-        .get()
 
-rootProject.layout.buildDirectory.value(newBuildDir)
-
-subprojects {
-    val subproject = this
-    subproject.layout.buildDirectory.value(newBuildDir.dir(subproject.name))
-}
 
 subprojects {
     project.evaluationDependsOn(":app")
