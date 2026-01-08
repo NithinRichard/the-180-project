@@ -26,12 +26,13 @@ subprojects {
 }
 
 subprojects {
-    val subproject = this
-    subproject.plugins.withType<com.android.build.gradle.BasePlugin> {
-        val android = subproject.extensions.getByType<com.android.build.gradle.BaseExtension>()
-        android.compileSdkVersion(35)
-        android.defaultConfig {
-            targetSdkVersion(35)
+    project.plugins.configureEach {
+        if (this is com.android.build.gradle.BasePlugin) {
+            val android = project.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
+            android.compileSdkVersion(36)
+            android.defaultConfig {
+                targetSdkVersion(36)
+            }
         }
     }
 }
