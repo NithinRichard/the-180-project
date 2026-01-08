@@ -14,11 +14,8 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 subprojects {
     project.configurations.all {
         resolutionStrategy.eachDependency {
-            if (requested.group == "androidx.core" && requested.name == "core") {
-                useVersion("1.13.1")
-            }
-            if (requested.group == "androidx.core" && requested.name == "core-ktx") {
-                useVersion("1.13.1")
+            if (requested.group == "androidx.core" && (requested.name == "core" || requested.name == "core-ktx")) {
+                useVersion("1.8.0")
             }
         }
     }
@@ -29,14 +26,11 @@ subprojects {
 }
 
 subprojects {
-    val subproject = this
-    subproject.plugins.whenPluginAdded {
-        if (this is com.android.build.gradle.AppPlugin || this is com.android.build.gradle.LibraryPlugin) {
-            val android = subproject.extensions.getByType<com.android.build.gradle.BaseExtension>()
-            android.compileSdkVersion(36)
-            android.defaultConfig {
-                targetSdkVersion(36)
-            }
+    project.plugins.withType<com.android.build.gradle.BasePlugin> {
+        val android = project.extensions.getByType<com.android.build.gradle.BaseExtension>()
+        android.compileSdkVersion(35)
+        android.defaultConfig {
+            targetSdkVersion(35)
         }
     }
 }
