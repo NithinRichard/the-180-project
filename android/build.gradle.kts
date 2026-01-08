@@ -5,12 +5,6 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory =
-    rootProject.layout.buildDirectory
-        .dir("../../build")
-        .get()
-rootProject.layout.buildDirectory.value(newBuildDir)
-
 subprojects {
     project.configurations.all {
         resolutionStrategy {
@@ -22,16 +16,7 @@ subprojects {
 }
 
 subprojects {
-    val subproject = this
-    subproject.plugins.configureEach {
-        if (this is com.android.build.gradle.BasePlugin) {
-            val android = subproject.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
-            android.compileSdkVersion(35)
-            android.defaultConfig {
-                targetSdkVersion(35)
-            }
-        }
-    }
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
