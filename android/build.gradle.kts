@@ -13,28 +13,16 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
     project.configurations.all {
-        resolutionStrategy.eachDependency {
-            if (requested.group == "androidx.core" && (requested.name == "core" || requested.name == "core-ktx")) {
-                useVersion("1.12.0")
-            }
+        resolutionStrategy {
+            force("androidx.core:core:1.12.0")
+            force("androidx.core:core-ktx:1.12.0")
+            force("androidx.annotation:annotation:1.8.0")
         }
     }
 }
 
 subprojects {
     project.evaluationDependsOn(":app")
-}
-
-subprojects {
-    project.plugins.configureEach {
-        if (this is com.android.build.gradle.BasePlugin) {
-            val android = project.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
-            android.compileSdkVersion(36)
-            android.defaultConfig {
-                targetSdkVersion(36)
-            }
-        }
-    }
 }
 
 tasks.register<Delete>("clean") {
