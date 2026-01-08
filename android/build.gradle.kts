@@ -3,12 +3,13 @@ allprojects {
         google()
         mavenCentral()
     }
-    
-    // Global properties that Flutter plugins often use
-    project.ext.set("compileSdkVersion", 36)
-    project.ext.set("targetSdkVersion", 36)
-    project.ext.set("minSdkVersion", 21)
 }
+
+val newBuildDir: Directory =
+    rootProject.layout.buildDirectory
+        .dir("../../build")
+        .get()
+rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
     project.configurations.all {
@@ -20,17 +21,23 @@ subprojects {
     }
 }
 
-// Safely override SDK versions for all Android plugins using standard Flutter patterns
 subprojects {
-    project.plugins.withId("com.android.application") {
-        val android = project.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
-        android.compileSdkVersion(36)
-        android.defaultConfig.targetSdkVersion(36)
-    }
-    project.plugins.withId("com.android.library") {
-        val android = project.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
-        android.compileSdkVersion(36)
-        android.defaultConfig.targetSdkVersion(36)
+    project.evaluationDependsOn(":app")
+}
+
+// Safely override SDK versions for all Android plugins
+subprojects {
+    project.plugins.configureEach {
+        val plugin = this
+        if (plugin::class.java.name.contains("AndroidBasePlugin")) {
+            val android = project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)
+            android?.apply {
+                compileSdkVersion(36)
+                defaultConfig {
+                    targetSdkVersion(36)
+                }
+            }
+        }
     }
 }
 
