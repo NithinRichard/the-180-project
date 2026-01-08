@@ -151,7 +151,7 @@ class VideoRecorderWidgetState extends State<VideoRecorderWidget> {
                 style: const TextStyle(
                   color: AppTheme.voltGreen,
                   fontSize: 64,
-                  fontWeight: FontWeight.black,
+                  fontWeight: FontWeight.w900,
                   height: 1,
                 ),
               ),

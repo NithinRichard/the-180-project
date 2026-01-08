@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -77,24 +78,14 @@ class PoseDetectionService {
     final inputImageFormat = InputImageFormatValue.fromRawValue(image.format.raw);
     if (inputImageFormat == null) return null;
 
-    final planeData = image.planes.map(
-      (Plane plane) {
-        return InputImagePlaneMetadata(
-          bytesPerRow: plane.bytesPerRow,
-          height: plane.height,
-          width: plane.width,
-        );
-      },
-    ).toList();
-
-    final inputImageData = InputImageData(
+    final inputImageMetadata = InputImageMetadata(
       size: Size(image.width.toDouble(), image.height.toDouble()),
-      imageRotation: imageRotation,
-      inputImageFormat: inputImageFormat,
-      planeData: planeData,
+      rotation: imageRotation,
+      format: inputImageFormat,
+      bytesPerRow: image.planes[0].bytesPerRow,
     );
-
-    return InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
+    
+    return InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
   }
 
   void dispose() {
