@@ -15,7 +15,7 @@ subprojects {
     project.configurations.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "androidx.core" && (requested.name == "core" || requested.name == "core-ktx")) {
-                useVersion("1.8.0")
+                useVersion("1.12.0")
             }
         }
     }
@@ -26,8 +26,9 @@ subprojects {
 }
 
 subprojects {
-    project.plugins.withType<com.android.build.gradle.BasePlugin> {
-        val android = project.extensions.getByType<com.android.build.gradle.BaseExtension>()
+    val subproject = this
+    subproject.plugins.withType<com.android.build.gradle.BasePlugin> {
+        val android = subproject.extensions.getByType<com.android.build.gradle.BaseExtension>()
         android.compileSdkVersion(35)
         android.defaultConfig {
             targetSdkVersion(35)
