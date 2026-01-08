@@ -20,18 +20,17 @@ subprojects {
     }
 }
 
-// Ensure all subprojects (plugins) use the same SDK versions
+// Safely override SDK versions for all Android plugins using standard Flutter patterns
 subprojects {
-    project.plugins.configureEach {
-        if (this.class.name.contains("AndroidBasePlugin") || this is com.android.build.gradle.BasePlugin) {
-            val android = project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)
-            android?.apply {
-                compileSdkVersion(36)
-                defaultConfig {
-                    targetSdkVersion(36)
-                }
-            }
-        }
+    project.plugins.withId("com.android.application") {
+        val android = project.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
+        android.compileSdkVersion(36)
+        android.defaultConfig.targetSdkVersion(36)
+    }
+    project.plugins.withId("com.android.library") {
+        val android = project.extensions.getByType(com.android.build.gradle.BaseExtension::class.java)
+        android.compileSdkVersion(36)
+        android.defaultConfig.targetSdkVersion(36)
     }
 }
 
