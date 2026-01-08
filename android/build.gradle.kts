@@ -12,7 +12,7 @@ allprojects {
 
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
-        .dir("../../build")
+        .dir("../build") // Corrected: one level up from android/ to reach project root
         .get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
