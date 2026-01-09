@@ -3,8 +3,17 @@ import 'package:provider/provider.dart';
 import 'package:camera/camera.dart';
 import '../../core/app_theme.dart';
 import '../../core/workout_provider.dart';
+import '../../core/progression_provider.dart';
 import '../../shared/widgets/video_recorder.dart';
 import 'hspu_timer_widget.dart';
+import 'achievement_dialog.dart';
+import 'rest_timer_widget.dart';
+import 'rest_settings_screen.dart';
+import '../../core/settings_provider.dart';
+import 'ghost_overlay_review_screen.dart';
+import 'session_summary_dialog.dart';
+import '../../core/models/workout_log.dart';
+import 'dart:async';
 
 class WorkoutTimerScreen extends StatefulWidget {
   const WorkoutTimerScreen({super.key});
@@ -16,8 +25,17 @@ class WorkoutTimerScreen extends StatefulWidget {
 class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
   bool _isTraining = false;
   XFile? _recordedVideo;
-  String _selectedExercise = "SQUAT";
-  final List<String> _exercises = ["SQUAT", "PUSHUP", "HSPU"];
+  String _selectedExercise = "PUSHUP";
+  final List<String> _exercises = ["PUSHUP", "SQUAT", "PIKE_PUSHUP", "ELEVATED_PIKE", "WALL_HOLD", "WALL_HSPU", "HSPU"];
+  
+  bool _isResting = false;
+  
+  bool _enableVideo = false;
+  bool _enableAI = false;
+  
+  int _timerValue = 0;
+  int _aiRepCount = 0;
+  Timer? _sessionTimer;
   
   final GlobalKey<VideoRecorderWidgetState> _recorderKey = GlobalKey();
 
@@ -71,22 +89,111 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                 );
               }),
             ),
+            if (_recordedVideo != null) ...[
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white10),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.compare, color: Colors.black),
+                label: const Text("GHOST REVIEW"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.voltGreen.withOpacity(0.8),
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: () {
+                  final pbLog = Provider.of<WorkoutProvider>(context, listen: false).getPersonalBestLog(_selectedExercise);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GhostOverlayReviewScreen(
+                        attemptVideoPath: _recordedVideo!.path,
+                        referenceVideoPath: pbLog?.videoUrl,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  void _saveAndExit(int formFeel) {
-    final provider = Provider.of<WorkoutProvider>(context, listen: false);
-    provider.addLog(
-      reps: _repsController.text,
+  Future<void> _saveAndExit(int formFeel) async {
+    final workoutProvider = Provider.of<WorkoutProvider>(context, listen: false);
+    final progression = Provider.of<ProgressionProvider>(context, listen: false);
+
+    // Close the "SET COMPLETE" dialog first
+    Navigator.pop(context);
+
+    // 1. Calculate Session Stats
+    final sessionTUT = _timerValue;
+    final finalReps = _enableAI ? _aiRepCount : (int.tryParse(_repsController.text) ?? 0);
+    
+    // 3. Update Progression Metrics dynamically
+    // We pass the current logs + the new local log to ensure the summary is immediate and accurate
+    final double intensityMultiplier = _selectedExercise.contains('WALL') ? 0.7 : (_selectedExercise.contains('HSPU') ? 1.5 : 1.0);
+    final newLog = WorkoutLog(
+      id: "temp",
+      userId: workoutProvider.currentUserId ?? "anon",
+      userName: "ME",
+      reps: finalReps,
       exercise: _selectedExercise,
       formFeel: formFeel,
-      videoPath: _recordedVideo?.path,
+      timestamp: DateTime.now(),
+      teamId: workoutProvider.currentTeamId,
+      holdDuration: sessionTUT,
+      volumeScore: sessionTUT * intensityMultiplier,
     );
-    Navigator.pop(context); // Close dialog
-    Navigator.pop(context); // Exit timer screen
+
+    final List<WorkoutLog> updatedLogs = [
+      newLog,
+      ...workoutProvider.logs,
+    ];
+    await progression.calculateMetricsFromLogs(updatedLogs);
+    
+    // 4. Check mastery and level up
+    final result = await progression.checkProgress(newLog);
+    
+    // 5. Save to Firestore via WorkoutProvider
+    await workoutProvider.addLog(
+      reps: finalReps.toString(),
+      exercise: _selectedExercise,
+      formFeel: formFeel,
+      holdDuration: sessionTUT,
+      videoPath: _enableVideo ? _recordedVideo?.path : null,
+    );
+    
+    // 6. Show Summary & Rewards
+    if (mounted) {
+      // First show the Heatmap Summary
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => SessionSummaryDialog(
+          streakCount: progression.streakCount,
+          weeklyVolume: progression.weeklyVolumeLoad,
+          sessionTUT: sessionTUT,
+        ),
+      );
+
+      // Then show Achievement if mastered
+      if (result.isMastered && mounted) {
+        await showDialog(
+          context: context,
+          builder: (context) => AchievementDialog(level: result.level!),
+        );
+      }
+    }
+    
+    // Reset session variables and enter rest state
+    setState(() {
+      _isResting = true;
+      _timerValue = 0;
+      _aiRepCount = 0;
+    });
   }
 
   @override
@@ -133,6 +240,13 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                       letterSpacing: 2,
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.white54, size: 24),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const RestSettingsScreen()),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -143,6 +257,15 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                    VideoRecorderWidget(
                     key: _recorderKey,
                     exerciseType: _selectedExercise,
+                    enableVideo: _enableVideo,
+                    enableAI: _enableAI,
+                    onRepCountChanged: (count) {
+                      if (_aiRepCount != count) {
+                        Future.microtask(() {
+                          if (mounted) setState(() => _aiRepCount = count);
+                        });
+                      }
+                    },
                     onRecordingComplete: (file) {
                       _recordedVideo = file;
                     },
@@ -153,6 +276,29 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
                       child: HSPUTimerWidget(isRunning: _isTraining),
                     ),
                   ),
+                  if (_isResting)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.9),
+                        child: Center(
+                          child: Consumer<SettingsProvider>(
+                            builder: (context, settings, child) => RestTimerWidget(
+                              hrThreshold: settings.hrThreshold,
+                              smartExtension: settings.smartExtension,
+                              onFinished: () {
+                                Future.microtask(() {
+                                  if (mounted) {
+                                    setState(() {
+                                      _isResting = false;
+                                    });
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -160,20 +306,53 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  if (!_isTraining)
-                    ElevatedButton(
+                  if (!_isTraining) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _OptionToggle(
+                          label: "VIDEO",
+                          value: _enableVideo,
+                          onChanged: (val) => setState(() => _enableVideo = val),
+                        ),
+                        _OptionToggle(
+                          label: "AI REPS",
+                          value: _enableAI,
+                          onChanged: (val) => setState(() => _enableAI = val),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                     ElevatedButton(
                       onPressed: () {
-                        setState(() => _isTraining = true);
-                        _recorderKey.currentState?.toggleRecording();
+                        setState(() {
+                          _isTraining = true;
+                          _timerValue = 0;
+                          _aiRepCount = 0;
+                        });
+                        _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+                          if (mounted && _isTraining) {
+                            setState(() => _timerValue++);
+                          } else {
+                            timer.cancel();
+                          }
+                        });
+                        if (_enableVideo) {
+                          _recorderKey.currentState?.toggleRecording();
+                        }
                       },
                       child: const Text("START SET"),
-                    )
+                    ),
+                  ]
                   else
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                       onPressed: () {
                         setState(() => _isTraining = false);
-                        _recorderKey.currentState?.toggleRecording();
+                        _sessionTimer?.cancel();
+                        if (_enableVideo) {
+                          _recorderKey.currentState?.toggleRecording();
+                        }
                         _showNotePopup();
                       },
                       child: const Text("STOP / LOG SET"),
@@ -213,6 +392,53 @@ class _ScoreButton extends StatelessWidget {
         child: Text(
           score.toString(),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+      ),
+    );
+  }
+}
+class _OptionToggle extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _OptionToggle({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: value ? AppTheme.voltGreen : Colors.grey.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              value ? Icons.check_box : Icons.check_box_outline_blank,
+              color: value ? AppTheme.voltGreen : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: value ? Colors.white : Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
         ),
       ),
     );

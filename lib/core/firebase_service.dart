@@ -46,6 +46,20 @@ class FirebaseService {
             .toList());
   }
 
+  // Stream of verified high-performance logs for "The 180 Club"
+  Stream<List<WorkoutLog>> get180ClubLogs() {
+    return _db
+        .collection('logs')
+        .where('holdDuration', isGreaterThanOrEqualTo: 5)
+        .orderBy('holdDuration', descending: true)
+        .limit(20)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => WorkoutLog.fromFirestore(doc.data(), doc.id))
+            .where((log) => log.videoUrl != null) // Ensure video exists
+            .toList());
+  }
+
   // Log a new set
   Future<void> logWorkout(WorkoutLog log) async {
     await _db.collection('logs').add(log.toFirestore());

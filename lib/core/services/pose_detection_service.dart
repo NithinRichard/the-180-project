@@ -12,8 +12,8 @@ class PoseDetectionService {
   
   // Callback to update UI with latest rep count
   final Function(int) onRepCountChanged;
-  // Callback to provide skeletal data for overlay
-  final Function(Pose?) onPoseDetected;
+  // Callback to provide skeletal data and heuristic feedback
+  final Function(Pose?, PoseHeuristic?) onPoseDetected;
 
   PoseDetectionService({
     required this.onRepCountChanged,
@@ -29,6 +29,18 @@ class PoseDetectionService {
         break;
       case "PUSHUP":
         _currentHeuristic = PushupHeuristic();
+        break;
+      case "PIKE_PUSHUP":
+        _currentHeuristic = PikePushupHeuristic();
+        break;
+      case "ELEVATED_PIKE":
+        _currentHeuristic = ElevatedPikeHeuristic();
+        break;
+      case "WALL_HOLD":
+        _currentHeuristic = WallHoldHeuristic();
+        break;
+      case "WALL_HSPU":
+        _currentHeuristic = HSPUHeuristic(name: "WALL_HSPU");
         break;
       case "HSPU":
         _currentHeuristic = HSPUHeuristic();
@@ -54,9 +66,9 @@ class PoseDetectionService {
         final pose = poses.first;
         _currentHeuristic?.analyze(pose);
         onRepCountChanged(_currentHeuristic?.repCount ?? 0);
-        onPoseDetected(pose);
+        onPoseDetected(pose, _currentHeuristic);
       } else {
-        onPoseDetected(null);
+        onPoseDetected(null, _currentHeuristic);
       }
     } catch (e) {
       debugPrint("PoseDetection Error: $e");

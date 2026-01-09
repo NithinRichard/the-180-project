@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'core/app_theme.dart';
 import 'core/workout_provider.dart';
+import 'core/progression_provider.dart';
+import 'core/settings_provider.dart';
 import 'features/social/dashboard_screen.dart';
 
 import 'core/firebase_service.dart';
@@ -23,6 +25,14 @@ void main() async {
           create: (_) => WorkoutProvider(FirebaseService()),
           update: (_, auth, workout) =>
               workout!..update(auth.user?.uid, auth.user?.email),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, ProgressionProvider>(
+          create: (_) => ProgressionProvider(),
+          update: (_, auth, progression) => progression!..updateUserId(auth.user?.uid),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, SettingsProvider>(
+          create: (_) => SettingsProvider(),
+          update: (_, auth, settings) => settings!..updateUserId(auth.user?.uid),
         ),
       ],
       child: const The180Project(),

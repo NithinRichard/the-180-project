@@ -7,24 +7,32 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:the_180_project/core/firebase_service.dart';
+import 'package:the_180_project/core/workout_provider.dart';
+import 'package:the_180_project/features/auth/auth_provider.dart';
+import 'package:the_180_project/features/auth/login_screen.dart';
 
 import 'package:the_180_project/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Renders LoginScreen when not authenticated', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProxyProvider<AuthProvider, WorkoutProvider>(
+            create: (_) => WorkoutProvider(FirebaseService()),
+            update: (_, auth, workout) =>
+                workout!..update(auth.user?.uid, auth.user?.email),
+          ),
+        ],
+        child: const The180Project(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the LoginScreen is present.
+    expect(find.byType(LoginScreen), findsOneWidget);
   });
 }

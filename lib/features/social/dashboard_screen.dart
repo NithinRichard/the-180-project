@@ -7,10 +7,21 @@ import '../workout/progression_tracker_screen.dart';
 import '../auth/auth_provider.dart';
 import 'video_vault_screen.dart';
 import 'profile_screen.dart';
+import 'achievement_feed_screen.dart';
+import '../workout/session_summary_dialog.dart';
 import '../../shared/widgets/video_player_widget.dart';
+import '../workout/shoulder_heatmap.dart';
+import '../../core/progression_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  String? _lastLogId;
 
   @override
   Widget build(BuildContext context) {
@@ -18,15 +29,24 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('THE 180 PROJECT'),
         leading: IconButton(
-          icon: const Icon(Icons.map_outlined, color: AppTheme.voltGreen),
+          icon: const Icon(Icons.stars, color: AppTheme.voltGreen),
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ProgressionTrackerScreen()),
+              MaterialPageRoute(builder: (context) => const AchievementFeedScreen()),
             );
           },
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.map_outlined, color: AppTheme.voltGreen),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProgressionTrackerScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.video_library_outlined, color: AppTheme.voltGreen),
             onPressed: () {
@@ -52,13 +72,45 @@ class DashboardScreen extends StatelessWidget {
           if (!provider.isInitialized) {
             return const Center(child: CircularProgressIndicator(color: AppTheme.voltGreen));
           }
+
+          // Trigger dynamic metrics update if logs have changed
+          final latestLog = provider.logs.isNotEmpty ? provider.logs.first.id : "empty";
+          if (latestLog != _lastLogId) {
+            _lastLogId = latestLog;
+            Future.microtask(() => context.read<ProgressionProvider>().calculateMetricsFromLogs(provider.logs));
+          }
+
           final myLastSet = provider.lastMySet;
           final squadSets = provider.squadLogs;
           final currentUser = context.read<AuthProvider>().user; 
           final myName = currentUser?.email?.split('@').first.toUpperCase() ?? "ME";
+          final progression = context.watch<ProgressionProvider>();
 
           return CustomScrollView(
             slivers: [
+              // Gamification Stats Header
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  color: Colors.black,
+                  child: Row(
+                    children: [
+                      StreakFlame(streak: progression.streakCount, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        "${progression.streakCount} DAY STREAK",
+                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "${(progression.weeklyVolumeLoad / 60).toStringAsFixed(1)}m WEEKLY TUT",
+                        style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               // My Last Set
               SliverToBoxAdapter(
                 child: SizedBox(

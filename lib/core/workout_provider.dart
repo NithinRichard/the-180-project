@@ -6,15 +6,19 @@ import '../core/models/workout_log.dart';
 class WorkoutProvider with ChangeNotifier {
   final FirebaseService _firebaseService;
   List<WorkoutLog> _logs = [];
+  List<WorkoutLog> _clubLogs = [];
   String? _currentUserId;
   String? _currentUserName;
   String _currentTeamId = "global";
   StreamSubscription? _logsSubscription;
   StreamSubscription? _membersSubscription;
+  StreamSubscription? _clubSubscription;
   bool _hasFetchedSavedSquad = false;
   bool _isInitialized = false;
 
   List<WorkoutLog> get logs => _logs;
+  List<WorkoutLog> get clubLogs => _clubLogs;
+  String? get currentUserId => _currentUserId;
   String get currentTeamId => _currentTeamId;
   bool get isSoloMode => _currentTeamId == _currentUserId || _currentTeamId == "global";
   bool get isInitialized => _isInitialized;
@@ -111,6 +115,7 @@ class WorkoutProvider with ChangeNotifier {
   void dispose() {
     _logsSubscription?.cancel();
     _membersSubscription?.cancel();
+    _clubSubscription?.cancel();
     super.dispose();
   }
 
@@ -140,6 +145,14 @@ class WorkoutProvider with ChangeNotifier {
         },
       );
     }, onError: (error) => debugPrint("WorkoutProvider: ❌ MEMBER SYNC ERROR: $error"));
+
+    // 3. Sync "The 180 Club" logs globally
+    _clubSubscription?.cancel();
+    _clubSubscription = _firebaseService.get180ClubLogs().listen((newClubLogs) {
+      debugPrint("WorkoutProvider: 🌟 Sync'd ${newClubLogs.length} 180 CLUB logs");
+      _clubLogs = newClubLogs;
+      notifyListeners();
+    });
   }
 
   Future<void> addLog({
@@ -147,6 +160,7 @@ class WorkoutProvider with ChangeNotifier {
     required String exercise,
     required int formFeel,
     String? videoPath,
+    int holdDuration = 0,
   }) async {
     if (_currentUserId == null) return;
 
@@ -154,6 +168,18 @@ class WorkoutProvider with ChangeNotifier {
     if (videoPath != null) {
       videoUrl = await _firebaseService.uploadVideo(videoPath, _currentUserId!);
     }
+
+    // Calculate Volume Score based on Intensity Multipliers
+    double multiplier = 1.0;
+    if (exercise.contains('WALL')) {
+      multiplier = 0.7;
+    } else if (exercise.contains('HSPU') || exercise.contains('PIKE')) {
+      multiplier = 1.5;
+    } else if (exercise == 'HSPU' || exercise == 'HANDSTAND') {
+      multiplier = 1.0;
+    }
+
+    final double volumeScore = holdDuration * multiplier;
 
     final newLog = WorkoutLog(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -165,6 +191,8 @@ class WorkoutProvider with ChangeNotifier {
       timestamp: DateTime.now(),
       videoUrl: videoUrl,
       teamId: _currentTeamId,
+      holdDuration: holdDuration,
+      volumeScore: volumeScore,
     );
 
     // Add to local list for immediate UI feedback if Firebase is missing
@@ -177,6 +205,17 @@ class WorkoutProvider with ChangeNotifier {
   WorkoutLog? get lastMySet {
     try {
       return _logs.firstWhere((log) => log.userId == _currentUserId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  WorkoutLog? getPersonalBestLog(String exercise) {
+    try {
+      final myLogs = _logs.where((log) => log.userId == _currentUserId && log.exercise == exercise && log.videoUrl != null).toList();
+      if (myLogs.isEmpty) return null;
+      myLogs.sort((a, b) => b.reps.compareTo(a.reps));
+      return myLogs.first;
     } catch (_) {
       return null;
     }

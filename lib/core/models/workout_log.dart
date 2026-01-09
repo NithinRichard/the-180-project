@@ -10,6 +10,10 @@ class WorkoutLog {
   final DateTime timestamp;
   final String? videoUrl;
   final String teamId;
+  final int holdDuration; // In seconds
+  final double volumeScore; // duration * intensity_multiplier
+  final List<String> likes; // User IDs who liked
+  final int commentCount;
 
   WorkoutLog({
     required this.id,
@@ -21,6 +25,10 @@ class WorkoutLog {
     required this.timestamp,
     required this.teamId,
     this.videoUrl,
+    this.holdDuration = 0,
+    this.volumeScore = 0.0,
+    this.likes = const [],
+    this.commentCount = 0,
   });
 
   factory WorkoutLog.fromFirestore(Map<String, dynamic> data, String id) {
@@ -34,6 +42,10 @@ class WorkoutLog {
       timestamp: (data['timestamp'] as Timestamp).toDate(),
       videoUrl: data['videoUrl'],
       teamId: data['teamId'] ?? 'global',
+      holdDuration: data['holdDuration'] ?? 0,
+      volumeScore: (data['volumeScore'] ?? 0.0).toDouble(),
+      likes: List<String>.from(data['likes'] ?? []),
+      commentCount: data['commentCount'] ?? 0,
     );
   }
 
@@ -47,6 +59,10 @@ class WorkoutLog {
       'timestamp': Timestamp.fromDate(timestamp),
       'videoUrl': videoUrl,
       'teamId': teamId,
+      'holdDuration': holdDuration,
+      'volumeScore': volumeScore,
+      'likes': likes,
+      'commentCount': commentCount,
     };
   }
 }
